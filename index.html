@@ -749,7 +749,7 @@ footer{background:#052e16;border-top:1px solid rgba(245,158,11,.2);padding:3rem 
         </ol>
       </div>
       <div class="payment-btns">
-        <button class="copy-btn" onclick="copyNumber('1641050468253 ',this)">📋 Copy Number</button>
+        <button class="copy-btn" onclick="copyNumber('1641050468253',this)">📋 Copy Number</button>
         <button class="app-btn">Open Nexus Pay</button>
       </div>
     </div>
@@ -919,7 +919,7 @@ footer{background:#052e16;border-top:1px solid rgba(245,158,11,.2);padding:3rem 
         <div class="host-contact-grid">
           <a href="/cdn-cgi/l/email-protection#f3809b92989a9f9e929b9e8697c1c2c1c2c1c2b3949e929a9fdd909c9e" class="host-contact-item">
             <div class="host-contact-icon">&#9993;&#65039;</div>
-            <div><div class="host-contact-label">Email</div><div class="host-contact-val"><span class="__cf_email__" data-cfemail="f2819a93999b9e9f939a9f8796c0c3c0c3c0c3b2959f939b9edc919d9f">[email&#160;protected]</span></div></div>
+            <div><div class="host-contact-label">Email</div><div class="host-contact-val"><span class="__cf_email__" data-cfemail="f2819a93999b9e9f939a9f8796c0c3c0c3c0c3b2959f939b9edc919d9f">shakilmahmud212121@gmail.com</span></div></div>
           </a>
           <a href="tel:+8801537565873" class="host-contact-item">
             <div class="host-contact-icon">&#128222;</div>
@@ -987,6 +987,7 @@ footer{background:#052e16;border-top:1px solid rgba(245,158,11,.2);padding:3rem 
     <div style="display:flex;gap:.75rem;align-items:center">
       <span id="adminWelcome" style="font-size:.8rem;color:#6ee7b7;display:none"></span>
       <button class="admin-export-btn" id="adminExportBtn" onclick="exportCSV()" style="display:none">Export CSV</button>
+      <button class="admin-export-btn" onclick="renderAdminDash()" style="display:inline-block">&#8635; Refresh</button>
       <button class="admin-close" onclick="closeAdmin()">Close (Esc)</button>
     </div>
   </div>
@@ -1047,11 +1048,9 @@ footer{background:#052e16;border-top:1px solid rgba(245,158,11,.2);padding:3rem 
 <div class="toast" id="toast"></div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ─── FORMSPREE CONFIG ───
-// Replace the value below with YOUR Formspree endpoint after signing up at formspree.io
-// e.g. 'https://formspree.io/f/xpwzabcd'
-var FORMSPREE_APPLY_URL  = 'https://formspree.io/f/xzdjkqev';
-var FORMSPREE_NOTIFY_URL = 'https://formspree.io/f/xqeygopp';
+// ─── GOOGLE SHEETS CONFIG (100% Free) ───
+// Paste your Google Apps Script Web App URL here after setup (see instructions)
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxI0uB3M8lBwXoyapO4xw2OSvTZ9e4O4bd97UcWXQUOURBly_CyMel6NzDc4xmaZTPr/exec';
 
 // ─── PARTICLES ───
 function createParticles(){
@@ -1229,31 +1228,28 @@ function submitApplication(){
     relation:relationFinal,message:message,idType:idType,gender:gender,dob:dob};
   appData.push(rec); saveApps(); updateStats();
 
-  // Send email notification via Formspree
-  var applyPayload={
-    '_subject': 'New Salami Application - Ref #'+refId,
-    'Reference ID': refId,
-    'Full Name': name,
-    'Mobile': '+880 '+mobile,
-    'ID Type': idType,
-    'ID Number': idNumber,
-    'Date of Birth': dob,
-    'Gender': gender,
-    'Relation': relationFinal,
-    'Banking Provider': selectedMbank.toUpperCase(),
-    'Banking Number': mbankNum,
-    'Amount Requested': 'BDT '+selectedAmount,
-    'Message': message||'(none)',
-    'Submitted At': new Date().toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})
-  };
-  if(FORMSPREE_APPLY_URL.indexOf('YOUR_')===-1){
-    fetch(FORMSPREE_APPLY_URL,{
+  // Send to Google Sheets + email alert
+  if(SHEET_URL!=='YOUR_GOOGLE_SCRIPT_URL'){
+    fetch(SHEET_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify(applyPayload)
-    }).then(function(r){return r.json();})
-      .then(function(d){if(d.ok){console.log('Application email sent.');}})
-      .catch(function(e){console.warn('Formspree error:',e);});
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({
+        type:'application',
+        refId:refId,
+        name:name,
+        mobile:'+880 '+mobile,
+        idType:idType,
+        idNumber:idNumber,
+        dob:dob,
+        gender:gender,
+        relation:relationFinal,
+        banking:selectedMbank.toUpperCase(),
+        bankingNum:mbankNum,
+        amount:selectedAmount,
+        message:message||'',
+        time:new Date().toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})
+      })
+    }).catch(function(e){console.warn('Sheet error:',e);});
   }
 
   showSuccess(selectedAmount,refId);
@@ -1324,24 +1320,21 @@ function submitNotify(){
   var rec={name:notifyName,amount:parseInt(notifyAmount)||0,method:notifyMethod,txn:notifyTxn,msg:notifyMsg,timestamp:Date.now()};
   givenData.push(rec); saveGiven();
 
-  // Send email notification via Formspree
-  var notifyPayload={
-    '_subject': 'Salami Received - '+notifyMethod+' BDT '+notifyAmount,
-    'Sender Name': notifyName,
-    'Amount Sent': 'BDT '+notifyAmount,
-    'Payment Method': notifyMethod||'Not specified',
-    'Transaction ID': notifyTxn||'(not provided)',
-    'Message': notifyMsg||'(none)',
-    'Sent At': new Date().toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})
-  };
-  if(FORMSPREE_NOTIFY_URL.indexOf('YOUR_')===-1){
-    fetch(FORMSPREE_NOTIFY_URL,{
+  // Send to Google Sheets + email alert
+  if(SHEET_URL!=='YOUR_GOOGLE_SCRIPT_URL'){
+    fetch(SHEET_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify(notifyPayload)
-    }).then(function(r){return r.json();})
-      .then(function(d){if(d.ok){console.log('Notify email sent.');}})
-      .catch(function(e){console.warn('Formspree error:',e);});
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({
+        type:'given',
+        name:notifyName,
+        amount:parseInt(notifyAmount)||0,
+        method:notifyMethod||'Not specified',
+        txn:notifyTxn||'',
+        msg:notifyMsg||'',
+        time:new Date().toLocaleString('en-BD',{timeZone:'Asia/Dhaka'})
+      })
+    }).catch(function(e){console.warn('Sheet error:',e);});
   }
 
   showToast('JazakAllah Khair! Your notification has been recorded.');
@@ -1391,7 +1384,7 @@ function handleLogoClick(){
 }
 
 // ─── ADMIN (hidden — Ctrl+Shift+A on desktop, 5x logo tap on mobile) ───
-var ADMIN_PASSWORD='eid2025admin';
+var ADMIN_PASSWORD='Mahmud2026Eid';
 var adminUnlocked=false;
 var adminFailCount=0;
 var adminLockUntil=0;
@@ -1443,17 +1436,73 @@ function checkAdminPass(){
 }
 
 function renderAdminDash(){
-  var total=appData.length;
-  var totalAmt=appData.reduce(function(s,a){return s+a.amount;},0);
-  var approved=appData.filter(function(a){return a.status==='approved';}).length;
-  var totalGiven=givenData.reduce(function(s,g){return s+(g.amount||0);},0);
-  document.getElementById('adminStatsRow').innerHTML=
-    '<div class="admin-stat"><div class="admin-stat-val">'+total+'</div><div class="admin-stat-label">Applications</div></div>'+
-    '<div class="admin-stat"><div class="admin-stat-val">\u09F3'+totalAmt.toLocaleString()+'</div><div class="admin-stat-label">Total Requested</div></div>'+
-    '<div class="admin-stat"><div class="admin-stat-val">'+approved+'</div><div class="admin-stat-label">Approved</div></div>'+
-    '<div class="admin-stat"><div class="admin-stat-val">\u09F3'+totalGiven.toLocaleString()+'</div><div class="admin-stat-label">Salami Received</div></div>';
-  renderAdminApps();
-  renderAdminGiven();
+  document.getElementById('adminStatsRow').innerHTML='<div class="admin-stat" style="grid-column:1/-1"><div class="admin-stat-val" style="font-size:1rem;color:#6ee7b7">Loading...</div></div>';
+  document.getElementById('adminAppsTable').innerHTML='<div class="admin-empty"><p>Fetching applications...</p></div>';
+  document.getElementById('adminGivenTable').innerHTML='<div class="admin-empty"><p>Fetching salami given list...</p></div>';
+
+  if(!SHEET_URL||SHEET_URL==='YOUR_GOOGLE_SCRIPT_URL'){
+    // No sheet configured — show localStorage data with setup hint
+    renderAdminAppsData(appData.slice().reverse());
+    renderAdminGivenData(givenData.slice().reverse());
+    updateAdminStats(appData,givenData);
+    document.getElementById('adminStatsRow').insertAdjacentHTML('afterend',
+      '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.8rem;color:#fcd34d;text-align:center">'+
+      'Google Sheets not connected yet. See setup instructions to see all submissions.</div>');
+    return;
+  }
+
+  fetch(SHEET_URL+'?action=getAll')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var applyArr = (data.applications||[]).map(function(row){
+        return {
+          id:row[0]||'-', name:row[1]||'-', mobile:row[2]||'',
+          idType:row[3]||'', relation:row[5]||'',
+          selectedMbank:row[6]||'-', mbankNum:row[7]||'',
+          amount:parseInt(row[8])||0, message:row[9]||'',
+          status:statusOverrides[row[0]]||row[10]||'pending',
+          timestamp:row[11]?new Date(row[11]).getTime():Date.now(),
+          maskedName:(row[1]||'?')[0]+'***'
+        };
+      });
+      var givenArr = (data.given||[]).map(function(row){
+        return {
+          name:row[0]||'Anonymous', amount:parseInt(row[1])||0,
+          method:row[2]||'-', txn:row[3]||'',
+          msg:row[4]||'', timestamp:row[5]?new Date(row[5]).getTime():Date.now()
+        };
+      });
+      // Merge any local offline entries
+      appData.forEach(function(local){
+        var ex=applyArr.some(function(a){return a.id===local.id;});
+        if(!ex) applyArr.push(local);
+      });
+      givenData.forEach(function(local){
+        var ex=givenArr.some(function(g){return g.timestamp===local.timestamp&&g.name===local.name;});
+        if(!ex) givenArr.push(local);
+      });
+      applyArr.sort(function(a,b){return b.timestamp-a.timestamp;});
+      givenArr.sort(function(a,b){return b.timestamp-a.timestamp;});
+      updateAdminStats(applyArr,givenArr);
+      renderAdminAppsData(applyArr);
+      renderAdminGivenData(givenArr);
+    })
+    .catch(function(e){
+      console.warn('Sheet fetch error:',e);
+      // Fallback to localStorage
+      renderAdminAppsData(appData.slice().reverse());
+      renderAdminGivenData(givenData.slice().reverse());
+      updateAdminStats(appData,givenData);
+    });
+}
+var statusOverrides=JSON.parse(localStorage.getItem('eidStatusOverrides')||'{}');
+function saveStatusOverride(id,status){statusOverrides[id]=status;localStorage.setItem('eidStatusOverrides',JSON.stringify(statusOverrides));}
+function updateAdminStats(applyArr,givenArr){
+  var total=applyArr.length;
+  var totalAmt=applyArr.reduce(function(s,a){return s+(a.amount||0);},0);
+  var approved=applyArr.filter(function(a){return (statusOverrides[a.id]||a.status||'pending')==='approved';}).length;
+  var totalGiven=givenArr.reduce(function(s,g){return s+(g.amount||0);},0);
+  document.getElementById('adminStatsRow').innerHTML='<div class="admin-stat"><div class="admin-stat-val">'+total+'</div><div class="admin-stat-label">Applications</div></div><div class="admin-stat"><div class="admin-stat-val">৳'+totalAmt.toLocaleString()+'</div><div class="admin-stat-label">Total Requested</div></div><div class="admin-stat"><div class="admin-stat-val">'+approved+'</div><div class="admin-stat-label">Approved</div></div><div class="admin-stat"><div class="admin-stat-val">৳'+totalGiven.toLocaleString()+'</div><div class="admin-stat-label">Salami Received</div></div>';
 }
 
 function switchAdminTab(tab,btn){
@@ -1464,67 +1513,59 @@ function switchAdminTab(tab,btn){
   document.getElementById('adminTabGiven').style.display=tab==='given'?'block':'none';
 }
 
-function renderAdminApps(){
+function renderAdminApps(){renderAdminDash();}
+function renderAdminAppsData(list){
   var search=(document.getElementById('adminSearchApps')?document.getElementById('adminSearchApps').value:'').toLowerCase();
   var filterStatus=document.getElementById('adminFilterStatus')?document.getElementById('adminFilterStatus').value:'';
-  var list=appData.slice().reverse();
-  if(search) list=list.filter(function(a){return (a.name||a.maskedName||'').toLowerCase().indexOf(search)>=0||(a.mobile||'').indexOf(search)>=0||(a.status||'').indexOf(search)>=0;});
-  if(filterStatus) list=list.filter(function(a){return (a.status||'pending')===filterStatus;});
+  if(search)list=list.filter(function(a){return (a.name||a.maskedName||'').toLowerCase().indexOf(search)>=0||(a.mobile||'').indexOf(search)>=0||(statusOverrides[a.id]||a.status||'pending').indexOf(search)>=0;});
+  if(filterStatus)list=list.filter(function(a){return (statusOverrides[a.id]||a.status||'pending')===filterStatus;});
   var wrap=document.getElementById('adminAppsTable');
   if(!list.length){wrap.innerHTML='<div class="admin-empty"><div class="admin-empty-icon">&#128235;</div><p>No applications found.</p></div>';return;}
   var rows='';
   for(var i=0;i<list.length;i++){
     var a=list[i];
-    var idx=appData.findIndex(function(x){return x.id===a.id;});
-    var status=a.status||'pending';
+    var status=statusOverrides[a.id]||a.status||'pending';
     var time=a.timestamp?new Date(a.timestamp).toLocaleString():'-';
     rows+='<tr>';
-    rows+='<td style="color:#4d7c6f">'+(list.length-i)+'</td>';
+    rows+='<td style="color:#4d7c6f">'+(i+1)+'</td>';
     rows+='<td style="color:#f59e0b;font-size:.72rem">'+(a.id||'-')+'</td>';
     rows+='<td><strong style="color:#fef3c7">'+(a.name||a.maskedName||'-')+'</strong></td>';
-    rows+='<td style="color:#a7f3d0">'+(a.mobile?'+880 '+a.mobile:'-')+'</td>';
+    rows+='<td style="color:#a7f3d0">'+(a.mobile?(a.mobile.startsWith('+880')?a.mobile:'+880 '+a.mobile):'-')+'</td>';
     rows+='<td style="color:#6ee7b7">'+((a.selectedMbank||'-').toUpperCase())+'<br><span style="font-size:.7rem;color:#4d7c6f">'+(a.mbankNum||'')+'</span></td>';
-    rows+='<td><strong style="color:#fcd34d">\u09F3'+a.amount+'</strong></td>';
+    rows+='<td><strong style="color:#fcd34d">৳'+(a.amount||0)+'</strong></td>';
     rows+='<td style="color:#a7f3d0;font-size:.8rem">'+(a.relation||'-')+'</td>';
     rows+='<td><span class="status-badge status-'+status+'">'+status+'</span></td>';
     rows+='<td style="color:#4d7c6f;font-size:.72rem">'+time+'</td>';
-    rows+='<td><button class="admin-action-btn btn-approve" data-idx="'+idx+'" data-status="approved" onclick="updateAppStatus(this)">Approve</button>';
-    rows+='<button class="admin-action-btn btn-reject" data-idx="'+idx+'" data-status="rejected" onclick="updateAppStatus(this)">Reject</button></td>';
+    rows+='<td><button class="admin-action-btn btn-approve" data-id="'+(a.id||i)+'" data-status="approved" onclick="updateAppStatus(this)">Approve</button> <button class="admin-action-btn btn-reject" data-id="'+(a.id||i)+'" data-status="rejected" onclick="updateAppStatus(this)">Reject</button></td>';
     rows+='</tr>';
   }
   wrap.innerHTML='<table class="admin-table"><thead><tr><th>#</th><th>Ref</th><th>Name</th><th>Mobile</th><th>Banking</th><th>Amount</th><th>Relation</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-function renderAdminGiven(){
+function renderAdminGiven(){renderAdminDash();}
+function renderAdminGivenData(list){
   var search=(document.getElementById('adminSearchGiven')?document.getElementById('adminSearchGiven').value:'').toLowerCase();
-  var list=givenData.slice().reverse();
-  if(search) list=list.filter(function(g){return (g.name||'').toLowerCase().indexOf(search)>=0||(g.method||'').toLowerCase().indexOf(search)>=0;});
+  if(search)list=list.filter(function(g){return (g.name||'').toLowerCase().indexOf(search)>=0||(g.method||'').toLowerCase().indexOf(search)>=0;});
   var wrap=document.getElementById('adminGivenTable');
   if(!list.length){wrap.innerHTML='<div class="admin-empty"><div class="admin-empty-icon">&#128157;</div><p>No salami notifications yet.</p></div>';return;}
   var rows='';
   for(var i=0;i<list.length;i++){
     var g=list[i];
     var time=g.timestamp?new Date(g.timestamp).toLocaleString():'-';
-    rows+='<tr>';
-    rows+='<td style="color:#4d7c6f">'+(list.length-i)+'</td>';
-    rows+='<td><strong style="color:#fef3c7">'+(g.name||'Anonymous')+'</strong></td>';
-    rows+='<td><strong style="color:#fcd34d">\u09F3'+(g.amount||'?')+'</strong></td>';
-    rows+='<td style="color:#6ee7b7">'+(g.method||'-')+'</td>';
-    rows+='<td style="color:#a7f3d0;font-size:.8rem">'+(g.txn||'not provided')+'</td>';
-    rows+='<td style="color:#d1fae5;font-size:.8rem">'+(g.msg||'-')+'</td>';
-    rows+='<td style="color:#4d7c6f;font-size:.72rem">'+time+'</td>';
-    rows+='</tr>';
+    rows+='<tr><td style="color:#4d7c6f">'+(i+1)+'</td><td><strong style="color:#fef3c7">'+(g.name||'Anonymous')+'</strong></td><td><strong style="color:#fcd34d">৳'+(g.amount||'?')+'</strong></td><td style="color:#6ee7b7">'+(g.method||'-')+'</td><td style="color:#a7f3d0;font-size:.8rem">'+(g.txn||'not provided')+'</td><td style="color:#d1fae5;font-size:.8rem">'+(g.msg||'-')+'</td><td style="color:#4d7c6f;font-size:.72rem">'+time+'</td></tr>';
   }
   wrap.innerHTML='<table class="admin-table"><thead><tr><th>#</th><th>Name</th><th>Amount</th><th>Method</th><th>TxnID</th><th>Message</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function updateAppStatus(btn){
-  var idx=parseInt(btn.getAttribute('data-idx'));
+  var id=btn.getAttribute('data-id');
   var status=btn.getAttribute('data-status');
-  if(isNaN(idx)||idx<0||idx>=appData.length)return;
-  appData[idx].status=status;
-  saveApps(); updateStats(); renderAdminDash();
-  showToast('Status updated to '+status);
+  if(!id||!status)return;
+  saveStatusOverride(id,status);
+  for(var i=0;i<appData.length;i++){if(appData[i].id===id){appData[i].status=status;break;}}
+  saveApps(); updateStats();
+  showToast('Marked as '+status+' ✓');
+  renderAdminDash();
 }
 
 function exportCSV(){
